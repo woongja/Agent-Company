@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Company - AI Agent Office</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a2e;
+      --surface3: #222240;
+      --border: #2a2a3e;
+      --text: #e0e0f0;
+      --text2: #8888aa;
+      --text3: #555577;
+      --accent: #6c5ce7;
+      --accent2: #a29bfe;
+      --green: #00b894;
+      --green2: #55efc4;
+      --yellow: #fdcb6e;
+      --red: #e17055;
+      --blue: #74b9ff;
+      --pink: #fd79a8;
+      --orange: #e17055;
+      --cyan: #81ecec;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* === HEADER === */
+    .header {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .header h1 {
+      font-size: 20px;
+      background: linear-gradient(135deg, var(--accent2), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-right {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text2);
+      background: var(--surface2); padding: 4px 12px;
+      border-radius: 20px; border: 1px solid var(--border);
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .dot.off { background: var(--text3); }
+
+    /* === STATUS LINE (OMC style) === */
+    .status-line {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: 4px 30px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: 'Consolas', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--text2);
+      height: 28px;
+    }
+    .sl-section {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .sl-label { color: var(--text3); }
+    .sl-value { color: var(--accent2); font-weight: 600; }
+    .sl-value.warn { color: var(--yellow); }
+    .sl-value.danger { color: var(--red); }
+    .sl-value.ok { color: var(--green); }
+    .sl-sep { color: var(--text3); }
+    .sl-bar {
+      display: inline-block;
+      width: 50px; height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      vertical-align: middle;
+    }
+    .sl-bar-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 0.5s;
+    }
+    .sl-bar-fill.ok { background: var(--green); }
+    .sl-bar-fill.warn { background: var(--yellow); }
+    .sl-bar-fill.danger { background: var(--red); }
+
+    /* === MAIN GRID === */
+    .main {
+      display: grid;
+      grid-template-columns: 320px 1fr 340px;
+      grid-template-rows: auto 1fr;
+      height: calc(100vh - 56px - 28px);
+    }
+
+    /* === INPUT BAR (spans all columns) === */
+    .input-bar {
+      grid-column: 1 / -1;
+      padding: 16px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .input-bar textarea {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      color: var(--text);
+      font-size: 14px;
+      resize: none; height: 42px;
+      font-family: inherit;
+    }
+    .input-bar textarea:focus { outline: none; border-color: var(--accent); }
+    .input-bar textarea::placeholder { color: var(--text3); }
+    .btn {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--accent), #5a4bd1);
+      color: white; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn:hover { box-shadow: 0 4px 16px rgba(108,92,231,0.4); transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-hist {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text2); border-radius: 10px; padding: 8px 12px;
+      font-size: 16px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-hist:hover { border-color: var(--accent); color: var(--text); }
+
+    /* History Panel */
+    .history-panel {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    .hist-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 12px; border-radius: 8px;
+      cursor: pointer; transition: background 0.15s;
+      font-size: 13px; border-bottom: 1px solid rgba(42,42,62,0.3);
+    }
+    .hist-item:hover { background: var(--surface2); }
+    .hist-idea { flex: 1; color: var(--text); }
+    .hist-status {
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 10px; font-weight: 600;
+    }
+    .hist-status.completed { background: rgba(0,184,148,0.15); color: var(--green); }
+    .hist-status.failed { background: rgba(225,112,85,0.15); color: var(--red); }
+    .hist-date { font-size: 11px; color: var(--text3); width: 80px; text-align: right; }
+    .btn-resume {
+      background: rgba(0,184,148,0.15); color: var(--green);
+      border: 1px solid rgba(0,184,148,0.3); border-radius: 6px;
+      padding: 2px 10px; font-size: 11px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+    }
+    .btn-resume:hover { background: rgba(0,184,148,0.3); }
+    .btn-abort {
+      padding: 10px 18px;
+      background: linear-gradient(135deg, var(--red), #c0392b);
+      color: white; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-abort:hover { box-shadow: 0 4px 16px rgba(225,112,85,0.4); transform: translateY(-1px); }
+
+    /* === LEFT: AGENT ROSTER === */
+    .roster {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--surface);
+    }
+    .section-title {
+      font-size: 11px; font-weight: 700; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+    .agent-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .agent-card:hover { border-color: var(--accent); }
+    .agent-card.active { border-color: var(--yellow); box-shadow: 0 0 16px rgba(253,203,110,0.1); }
+    .agent-card.done { border-color: rgba(0,184,148,0.3); }
+    .agent-card .top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .agent-card .icon {
+      font-size: 22px; width: 38px; height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      background: rgba(108,92,231,0.1);
+    }
+    .agent-card .name { font-weight: 600; font-size: 14px; }
+    .agent-card .role { font-size: 11px; color: var(--text2); }
+    .agent-card .badge {
+      margin-left: auto;
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 10px; font-weight: 600;
+    }
+    .badge.idle { background: rgba(85,85,119,0.2); color: var(--text3); }
+    .badge.working { background: rgba(253,203,110,0.15); color: var(--yellow); }
+    .badge.done { background: rgba(0,184,148,0.15); color: var(--green); }
+
+    /* Activity feed inside card */
+    .activity-feed {
+      margin-top: 8px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s;
+    }
+    .agent-card.active .activity-feed,
+    .agent-card.done .activity-feed {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .activity-item {
+      display: flex; align-items: flex-start; gap: 6px;
+      font-size: 11px; color: var(--text2);
+      padding: 3px 0;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .activity-item .tool-icon {
+      flex-shrink: 0;
+      font-size: 12px;
+      width: 16px; text-align: center;
+    }
+    .activity-item .detail {
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    /* Connector */
+    .connector { width: 2px; height: 8px; background: var(--border); margin: 0 auto; }
+    .connector.lit { background: var(--green); }
+
+    /* === CENTER: MAIN OUTPUT === */
+    .center {
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .welcome {
+      text-align: center; padding: 80px 40px; color: var(--text2);
+    }
+    .welcome h2 {
+      font-size: 26px; margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--accent2), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .welcome p { font-size: 14px; line-height: 1.8; }
+
+    /* Chat bubbles */
+    .chat-bubble {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      animation: fadeUp 0.3s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-bubble .bubble-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px; font-size: 12px;
+    }
+    .chat-bubble .bubble-agent { font-weight: 600; }
+    .chat-bubble .bubble-time { margin-left: auto; color: var(--text3); font-size: 10px; }
+    .chat-bubble .bubble-body {
+      font-size: 13px; line-height: 1.7; color: var(--text);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-bubble .bubble-body pre {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; margin: 8px 0;
+      overflow-x: auto; font-size: 12px; line-height: 1.5;
+    }
+    .chat-bubble .bubble-body code {
+      background: rgba(108,92,231,0.15);
+      padding: 1px 5px; border-radius: 3px; font-size: 12px;
+    }
+    .chat-bubble .bubble-body strong { color: var(--accent2); }
+
+    /* Typing indicator */
+    .typing { display: flex; gap: 4px; padding: 8px 0; }
+    .typing span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent2); animation: bounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40% { transform: translateY(-8px); }
+    }
+
+    /* === RIGHT: LIVE ACTIVITY LOG === */
+    .sidebar {
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .log-entry {
+      display: flex; gap: 8px; padding: 6px 0;
+      font-size: 11px; color: var(--text2);
+      border-bottom: 1px solid rgba(42,42,62,0.5);
+      animation: slideIn 0.2s ease;
+    }
+    .log-entry .log-time { color: var(--text3); flex-shrink: 0; width: 55px; }
+    .log-entry .log-agent {
+      font-weight: 600; flex-shrink: 0; width: 70px;
+    }
+    .log-entry .log-detail { word-break: break-all; line-height: 1.4; }
+    .log-tool {
+      display: inline-block;
+      background: rgba(108,92,231,0.15);
+      color: var(--accent2);
+      padding: 1px 5px; border-radius: 3px;
+      font-size: 10px; font-weight: 600;
+      margin-right: 4px;
+    }
+
+    /* Progress bar */
+    .progress {
+      grid-column: 1 / -1;
+      height: 3px; background: var(--border);
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      transition: width 0.5s; width: 0%;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .main { grid-template-columns: 260px 1fr; }
+      .sidebar { display: none; }
+    }
+    @media (max-width: 700px) {
+      .main { grid-template-columns: 1fr; }
+      .roster { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Agent Company</h1>
+  <div class="header-right">
+    <div class="status-badge">
+      <div class="dot" id="wsDot"></div>
+      <span>Claude Code</span>
+    </div>
+    <div class="status-badge" id="timerBadge" style="display:none">
+      <span id="timerText">0:00</span>
+    </div>
+  </div>
+</div>
+
+<!-- OMC-style Status Line -->
+<div class="status-line" id="statusLine">
+  <div class="sl-section">
+    <span class="sl-label">AC#2.0</span>
+    <span class="sl-sep">|</span>
+  </div>
+  <div class="sl-section" id="slRateLimit">
+    <span class="sl-label">5h:</span>
+    <span class="sl-value ok" id="sl5hPct">--%</span>
+    <div class="sl-bar"><div class="sl-bar-fill ok" id="sl5hBar" style="width:0%"></div></div>
+    <span class="sl-sep">|</span>
+  </div>
+  <div class="sl-section">
+    <span class="sl-label">session:</span>
+    <span class="sl-value" id="slSession">0m</span>
+    <span class="sl-sep">|</span>
+  </div>
+  <div class="sl-section">
+    <span class="sl-label">tokens:</span>
+    <span class="sl-value" id="slTokens">0</span>
+    <span class="sl-label">in</span>
+    <span class="sl-value" id="slTokensOut">0</span>
+    <span class="sl-label">out</span>
+    <span class="sl-sep">|</span>
+  </div>
+  <div class="sl-section">
+    <span class="sl-label">cost:</span>
+    <span class="sl-value" id="slCost">$0.000</span>
+    <span class="sl-sep">|</span>
+  </div>
+  <div class="sl-section">
+    <span class="sl-label">stage:</span>
+    <span class="sl-value" id="slStage">idle</span>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Input bar -->
+  <div class="input-bar">
+    <button class="btn-hist" onclick="toggleHistory()" title="이전 프로젝트">&#x1F4C1;</button>
+    <textarea id="ideaInput" placeholder="아이디어를 입력하세요... (예: 실시간 할일 관리 앱)" rows="1"></textarea>
+    <div style="position:relative">
+      <select id="workDirSelect" style="
+        width: 220px; background: var(--surface2); border: 1px solid var(--border);
+        border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 12px;
+        font-family: 'Consolas', monospace; appearance: none; cursor: pointer;
+      ">
+        <option value="">새 프로젝트 (자동 생성)</option>
+      </select>
+      <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text3); font-size:10px">&#x25BC;</span>
+    </div>
+    <button class="btn" id="startBtn" onclick="startProject()">실행</button>
+    <button class="btn-abort" id="abortBtn" onclick="abortProject()" style="display:none">&#x23F9; 중단</button>
+  </div>
+  <!-- Session History Dropdown -->
+  <div class="history-panel" id="historyPanel" style="display:none">
+    <div class="section-title">이전 프로젝트 (REPORT.md)</div>
+    <div id="historyList"><p style="color:var(--text3);font-size:12px">로딩 중...</p></div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+  <!-- Left: Agent Roster -->
+  <div class="roster">
+    <div class="section-title">Agents</div>
+    <div id="rosterArea"></div>
+  </div>
+
+  <!-- Center: Main Output -->
+  <div class="center" id="centerPanel">
+    <div class="welcome" id="welcomeMsg">
+      <h2>AI Agent Office</h2>
+      <p>
+        아이디어를 입력하면 5명의 Claude Code 에이전트가<br>
+        실제로 파일을 만들고, 코드를 실행하고, 테스트합니다.<br><br>
+        PM → Architect → Developer ⇄ Reviewer (피드백 루프) → Tester
+      </p>
+    </div>
+    <div id="chatArea" style="display:none"></div>
+  </div>
+
+  <!-- Right: Live Activity Log -->
+  <div class="sidebar">
+    <div class="section-title">Live Activity</div>
+    <div id="logArea"></div>
+  </div>
+</div>
+
+<script>
+const AGENTS = [
+  { id: 'pm', name: 'PM', role: 'Product Manager', icon: '\u{1F4CB}', color: '#6c5ce7' },
+  { id: 'architect', name: 'Architect', role: 'System Architect', icon: '\u{1F3D7}\uFE0F', color: '#74b9ff' },
+  { id: 'developer', name: 'Developer', role: 'Full-Stack Dev', icon: '\u{1F4BB}', color: '#00b894' },
+  { id: 'reviewer', name: 'Reviewer', role: 'Code Reviewer', icon: '\u{1F50D}', color: '#fdcb6e' },
+  { id: 'tester', name: 'Tester', role: 'QA Engineer', icon: '\u{1F9EA}', color: '#fd79a8' },
+];
+
+const TOOL_ICONS = {
+  Read: '\u{1F4D6}', Write: '\u{270F}\uFE0F', Edit: '\u{1F527}',
+  Bash: '\u{1F4DF}', Glob: '\u{1F50E}', Grep: '\u{1F50D}',
+  Agent: '\u{1F916}', default: '\u{2699}\uFE0F}',
+};
+
+let ws = null;
+let isRunning = false;
+let startTime = null;
+let timerInterval = null;
+const agentStates = {};
+const agentActivities = {};
+
+// === STATUS LINE STATE ===
+const slState = {
+  totalInputTokens: 0,
+  totalOutputTokens: 0,
+  totalCost: 0,
+  rateLimitPct: null,
+  rateLimitResets: null,
+  currentAgent: 'idle',
+};
+
+let reviewRound = 0;
+
+AGENTS.forEach(a => {
+  agentStates[a.id] = 'idle';
+  agentActivities[a.id] = [];
+});
+
+// === RENDER ===
+function renderRoster() {
+  const el = document.getElementById('rosterArea');
+  let html = '';
+  AGENTS.forEach((a, i) => {
+    const state = agentStates[a.id];
+    const stateClass = state === 'working' ? 'active' : state === 'done' ? 'done' : '';
+    let badgeLabel = state === 'working' ? '작업중' : state === 'done' ? '완료' : '대기';
+    let badgeClass = state === 'working' ? 'working' : state === 'done' ? 'done' : 'idle';
+    // Show review round on reviewer/developer during loop
+    if (a.id === 'reviewer' && reviewRound > 0 && state !== 'idle') {
+      badgeLabel += ` (${reviewRound}차)`;
+    }
+
+    html += `<div class="agent-card ${stateClass}" onclick="selectAgent('${a.id}')">
+      <div class="top">
+        <div class="icon">${a.icon}</div>
+        <div><div class="name">${a.name}</div><div class="role">${a.role}</div></div>
+        <span class="badge ${badgeClass}">${badgeLabel}</span>
+      </div>
+      <div class="activity-feed" id="feed-${a.id}">
+        ${agentActivities[a.id].map(act => renderActivityItem(act)).join('')}
+      </div>
+    </div>`;
+
+    if (i < AGENTS.length - 1) {
+      const lit = state === 'done' ? 'lit' : '';
+      html += `<div class="connector ${lit}"></div>`;
+    }
+  });
+  el.innerHTML = html;
+}
+
+function renderActivityItem(act) {
+  const icon = TOOL_ICONS[act.tool] || TOOL_ICONS.default;
+  if (act.type === 'tool_use') {
+    return `<div class="activity-item"><span class="tool-icon">${icon}</span><span class="detail"><span class="log-tool">${act.tool}</span>${escHtml(act.input)}</span></div>`;
+  }
+  if (act.type === 'text') {
+    const preview = act.text.slice(0, 60) + (act.text.length > 60 ? '...' : '');
+    return `<div class="activity-item"><span class="tool-icon">\u{1F4AC}</span><span class="detail">${escHtml(preview)}</span></div>`;
+  }
+  if (act.type === 'result') {
+    return `<div class="activity-item"><span class="tool-icon">\u{2705}</span><span class="detail">완료 (${(act.duration/1000).toFixed(1)}s, $${act.cost?.toFixed(3) || '?'})</span></div>`;
+  }
+  return '';
+}
+
+function addLog(agentId, act) {
+  const logArea = document.getElementById('logArea');
+  const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const agent = AGENTS.find(a => a.id === agentId);
+  const agentName = agent?.name || agentId;
+  const color = agent?.color || '#888';
+
+  let detail = '';
+  if (act.type === 'tool_use') {
+    detail = `<span class="log-tool">${act.tool}</span>${escHtml(act.input).slice(0, 60)}`;
+  } else if (act.type === 'text') {
+    detail = escHtml(act.text.slice(0, 80));
+  } else if (act.type === 'result') {
+    detail = `\u{2705} 완료 (${(act.duration/1000).toFixed(1)}s)`;
+  } else if (act.type === 'system') {
+    detail = escHtml(act.message || '');
+  }
+
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="log-time">${time}</span><span class="log-agent" style="color:${color}">${agentName}</span><span class="log-detail">${detail}</span>`;
+  logArea.prepend(div);
+
+  // Keep max 200 entries
+  while (logArea.children.length > 200) logArea.lastChild.remove();
+}
+
+function addChatBubble(agentId, content, isSystem = false) {
+  const chatArea = document.getElementById('chatArea');
+  const time = new Date().toLocaleTimeString('ko-KR');
+  const agent = AGENTS.find(a => a.id === agentId);
+
+  const icon = isSystem ? '\u{1F3E2}' : agent?.icon || '\u{2699}\uFE0F';
+  const name = isSystem ? 'System' : agent?.name || agentId;
+  const color = isSystem ? '#888' : agent?.color || '#888';
+
+  const div = document.createElement('div');
+  div.className = 'chat-bubble';
+  div.innerHTML = `
+    <div class="bubble-header">
+      <span>${icon}</span>
+      <span class="bubble-agent" style="color:${color}">${name}</span>
+      <span class="bubble-time">${time}</span>
+    </div>
+    <div class="bubble-body">${formatMd(content)}</div>
+  `;
+  chatArea.appendChild(div);
+  document.getElementById('centerPanel').scrollTop = chatArea.scrollHeight;
+}
+
+function addTypingBubble(agentId) {
+  const chatArea = document.getElementById('chatArea');
+  const agent = AGENTS.find(a => a.id === agentId);
+  const div = document.createElement('div');
+  div.className = 'chat-bubble';
+  div.id = `typing-${agentId}`;
+  div.innerHTML = `
+    <div class="bubble-header">
+      <span>${agent?.icon || ''}</span>
+      <span class="bubble-agent" style="color:${agent?.color || '#888'}">${agent?.name || agentId}</span>
+    </div>
+    <div class="typing"><span></span><span></span><span></span></div>
+  `;
+  chatArea.appendChild(div);
+  document.getElementById('centerPanel').scrollTop = chatArea.scrollHeight;
+}
+
+function removeTypingBubble(agentId) {
+  document.getElementById(`typing-${agentId}`)?.remove();
+}
+
+// === STATE RESTORE (새로고침 시 복원) ===
+function restoreState(data) {
+  if (!data.history || data.history.length === 0) return;
+
+  // 세션 시작 시간 복원
+  if (data.sessionStartTime) {
+    startTime = data.sessionStartTime;
+    isRunning = true;
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('timerBadge').style.display = 'flex';
+    document.getElementById('welcomeMsg')?.remove();
+    document.getElementById('chatArea').style.display = 'block';
+    document.getElementById('chatArea').innerHTML = '';
+    document.getElementById('logArea').innerHTML = '';
+    timerInterval = setInterval(updateTimer, 1000);
+  }
+
+  // 히스토리 이벤트를 순서대로 재생 (애니메이션 없이)
+  document.documentElement.style.setProperty('--restore', '1');
+  for (const evt of data.history) {
+    handleEvent(evt);
+  }
+  document.documentElement.style.removeProperty('--restore');
+
+  // 완료된 프로젝트면 타이머 정리
+  const lastProject = data.history.filter(e => e.event === 'project_completed' || e.event === 'project_failed');
+  if (lastProject.length > 0) {
+    isRunning = false;
+    document.getElementById('startBtn').disabled = false;
+    clearInterval(timerInterval);
+  }
+
+  updateStatusLine();
+}
+
+// === WEBSOCKET ===
+function connectWs() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}`);
+  ws.onopen = () => { document.getElementById('wsDot').className = 'dot'; };
+  ws.onclose = () => {
+    document.getElementById('wsDot').className = 'dot off';
+    setTimeout(connectWs, 2000);
+  };
+  ws.onmessage = (e) => handleEvent(JSON.parse(e.data));
+}
+
+function handleEvent(data) {
+  switch (data.event) {
+    case 'restore':
+      restoreState(data);
+      return;
+
+    case 'work_dir':
+      addChatBubble(null, `&#x1F4C2; 작업 폴더: <code>${escHtml(data.workDir)}</code>`, true);
+      document.getElementById('slStage').textContent = data.workDir.split(/[/\\]/).pop();
+      break;
+
+    case 'project_started':
+      addChatBubble(null, `\u{1F680} 프로젝트 시작: "${data.project.idea}"`, true);
+      break;
+
+    case 'stage_started': {
+      const stageId = AGENTS[data.project.currentStage]?.id;
+      if (stageId) {
+        agentStates[stageId] = 'working';
+        agentActivities[stageId] = [];
+        renderRoster();
+        addTypingBubble(stageId);
+        addChatBubble(stageId, `작업을 시작합니다...`);
+        updateStatusLine();
+      }
+      break;
+    }
+
+    case 'stage_completed': {
+      const idx = data.project.currentStage;
+      const stageId = AGENTS[idx]?.id;
+      if (stageId) {
+        agentStates[stageId] = 'done';
+        renderRoster();
+        removeTypingBubble(stageId);
+        const output = data.project.stages[idx]?.output || '';
+        addChatBubble(stageId, output);
+        updateProgress(data.project);
+      }
+      break;
+    }
+
+    case 'project_aborted':
+      isRunning = false;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('abortBtn').style.display = 'none';
+      clearInterval(timerInterval);
+      addChatBubble(null, `\u{23F9} 사용자에 의해 중단됨 (${getElapsed()})`, true);
+      break;
+
+    case 'project_resumed':
+      addChatBubble(null, `\u{1F504} ${data.completedStages}개 스테이지 완료 상태에서 재개 → ${data.resumeStage}부터 시작`, true);
+      break;
+
+    case 'review_score': {
+      reviewRound = data.round;
+      const scoreColor = data.passed ? 'var(--green)' : 'var(--red)';
+      const emoji = data.passed ? '\u{2705}' : '\u{274C}';
+      addChatBubble(null, `${emoji} 리뷰 ${data.round}차 점수: <strong style="color:${scoreColor};font-size:18px">${data.score}/100</strong> (통과 기준: ${data.passScore}점)`, true);
+      break;
+    }
+
+    case 'review_feedback_loop':
+      addChatBubble(null, `\u{1F504} 점수 미달! Developer에게 피드백 전달 → ${data.nextRound}차 수정 시작`, true);
+      // Developer 상태를 다시 working으로
+      agentStates['developer'] = 'idle';
+      agentStates['reviewer'] = 'done';
+      renderRoster();
+      break;
+
+    case 'review_passed':
+      addChatBubble(null, `\u{1F389} 코드 리뷰 통과! (${data.round}차, ${data.score}점) → Tester에게 전달`, true);
+      break;
+
+    case 'review_max_rounds':
+      addChatBubble(null, `\u{26A0}\uFE0F 최대 리뷰 횟수(${data.round}회) 도달 (${data.score}점) → Tester에게 전달`, true);
+      break;
+
+    case 'project_completed':
+      isRunning = false;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('abortBtn').style.display = 'none';
+      clearInterval(timerInterval);
+      addChatBubble(null, `\u{2705} 프로젝트 완료! (${getElapsed()})`, true);
+      loadFolders();
+      break;
+
+    case 'project_failed':
+      isRunning = false;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('abortBtn').style.display = 'none';
+      clearInterval(timerInterval);
+      addChatBubble(null, `\u{274C} 오류: ${data.error || data.project?.error || 'Unknown error'}`, true);
+      break;
+
+    case 'agent_activity': {
+      const { agentId, activity } = data;
+
+      // Update status line with rate limit info
+      if (activity.type === 'rate_limit') {
+        updateRateLimit(activity);
+      }
+      // Update status line with usage/cost
+      else if (activity.type === 'result') {
+        if (activity.usage) {
+          slState.totalInputTokens += activity.usage.inputTokens + activity.usage.cacheRead + activity.usage.cacheCreation;
+          slState.totalOutputTokens += activity.usage.outputTokens;
+        }
+        if (activity.cost) {
+          slState.totalCost += activity.cost;
+        }
+        updateStatusLine();
+        agentActivities[agentId] = agentActivities[agentId] || [];
+        agentActivities[agentId].push(activity);
+        if (agentActivities[agentId].length > 30) agentActivities[agentId].shift();
+        renderRoster();
+        addLog(agentId, activity);
+      }
+      else if (activity.type === 'text' || activity.type === 'tool_use') {
+        agentActivities[agentId] = agentActivities[agentId] || [];
+        agentActivities[agentId].push(activity);
+        if (agentActivities[agentId].length > 30) agentActivities[agentId].shift();
+        renderRoster();
+        addLog(agentId, activity);
+      } else if (activity.type === 'system') {
+        addLog(agentId, activity);
+      }
+      break;
+    }
+  }
+}
+
+function updateProgress(project) {
+  const done = project.stages.filter(s => s.status === 'completed').length;
+  document.getElementById('progressFill').style.width = (done / AGENTS.length * 100) + '%';
+}
+
+// === HELPERS ===
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatMd(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^\s*###\s+(.+)$/gm, '<strong style="color:var(--cyan)">$1</strong>')
+    .replace(/^\s*##\s+(.+)$/gm, '<strong style="color:var(--blue);font-size:15px">$1</strong>')
+    .replace(/^\s*#\s+(.+)$/gm, '<strong style="color:var(--accent2);font-size:17px">$1</strong>')
+    .replace(/^\s*[-*]\s+/gm, '  \u2022 ')
+    .replace(/\n/g, '<br>');
+}
+
+function getElapsed() {
+  if (!startTime) return '0s';
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  const m = Math.floor(s / 60);
+  return m > 0 ? `${m}m ${s%60}s` : `${s}s`;
+}
+
+function updateTimer() {
+  document.getElementById('timerText').textContent = getElapsed();
+  updateStatusLine();
+}
+
+function selectAgent(id) {
+  // future: filter chat to specific agent
+}
+
+// === STATUS LINE ===
+function updateRateLimit(info) {
+  if (info.resetsAt) {
+    slState.rateLimitResets = info.resetsAt * 1000; // epoch ms
+    // Calculate approximate % used from reset time
+    // 5h window = 18000s. Time remaining = resetsAt - now
+    const now = Date.now();
+    const remaining = slState.rateLimitResets - now;
+    const windowMs = 5 * 60 * 60 * 1000; // 5 hours
+    const elapsed = windowMs - remaining;
+    const pct = Math.max(0, Math.min(100, Math.round(elapsed / windowMs * 100)));
+    slState.rateLimitPct = pct;
+  }
+  if (info.percentUsed != null) {
+    slState.rateLimitPct = Math.round(info.percentUsed);
+  }
+  updateStatusLine();
+}
+
+function updateStatusLine() {
+  // 5h rate limit
+  const pct = slState.rateLimitPct;
+  if (pct != null) {
+    const el = document.getElementById('sl5hPct');
+    const bar = document.getElementById('sl5hBar');
+    el.textContent = pct + '%';
+
+    // Remaining time
+    if (slState.rateLimitResets) {
+      const remaining = Math.max(0, slState.rateLimitResets - Date.now());
+      const rm = Math.floor(remaining / 60000);
+      const rh = Math.floor(rm / 60);
+      const rms = rm % 60;
+      el.textContent = `${pct}%(${rh > 0 ? rh + 'h' : ''}${rms}m)`;
+    }
+
+    const cls = pct > 80 ? 'danger' : pct > 50 ? 'warn' : 'ok';
+    el.className = `sl-value ${cls}`;
+    bar.className = `sl-bar-fill ${cls}`;
+    bar.style.width = pct + '%';
+  }
+
+  // Session time
+  if (startTime) {
+    const s = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(s / 60);
+    document.getElementById('slSession').textContent = m > 0 ? `${m}m${s%60}s` : `${s}s`;
+  }
+
+  // Tokens
+  const fmtNum = (n) => n > 1000 ? (n/1000).toFixed(1) + 'k' : n;
+  document.getElementById('slTokens').textContent = fmtNum(slState.totalInputTokens);
+  document.getElementById('slTokensOut').textContent = fmtNum(slState.totalOutputTokens);
+
+  // Cost
+  document.getElementById('slCost').textContent = '$' + slState.totalCost.toFixed(3);
+
+  // Current stage
+  const running = AGENTS.find(a => agentStates[a.id] === 'working');
+  document.getElementById('slStage').textContent = running ? running.name : (isRunning ? 'starting...' : 'idle');
+}
+
+// === ABORT ===
+async function abortProject() {
+  try {
+    await fetch('/api/projects/abort', { method: 'POST' });
+  } catch (err) {
+    addChatBubble(null, `\u{274C} 중단 실패: ${err.message}`, true);
+  }
+}
+
+// === START ===
+async function startProject() {
+  const input = document.getElementById('ideaInput');
+  const idea = input.value.trim();
+  if (!idea || isRunning) return;
+
+  isRunning = true;
+  startTime = Date.now();
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('abortBtn').style.display = 'inline-block';
+  document.getElementById('timerBadge').style.display = 'flex';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('welcomeMsg')?.remove();
+  document.getElementById('chatArea').style.display = 'block';
+  document.getElementById('chatArea').innerHTML = '';
+  document.getElementById('logArea').innerHTML = '';
+
+  reviewRound = 0;
+  AGENTS.forEach(a => { agentStates[a.id] = 'idle'; agentActivities[a.id] = []; });
+  renderRoster();
+  timerInterval = setInterval(updateTimer, 1000);
+
+  try {
+    await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idea,
+        workDir: document.getElementById('workDirSelect').value || undefined,
+      }),
+    });
+  } catch (err) {
+    addChatBubble(null, `\u{274C} 서버 연결 실패: ${err.message}`, true);
+    isRunning = false;
+    document.getElementById('startBtn').disabled = false;
+    clearInterval(timerInterval);
+  }
+}
+
+document.getElementById('ideaInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startProject(); }
+});
+
+// === PROJECT HISTORY (REPORT.md 기반) ===
+async function toggleHistory() {
+  const panel = document.getElementById('historyPanel');
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    await loadHistory();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  try {
+    const res = await fetch('/api/history');
+    const projects = await res.json();
+    if (projects.length === 0) {
+      list.innerHTML = '<p style="color:var(--text3);font-size:12px;padding:8px">완료된 프로젝트가 없습니다</p>';
+      return;
+    }
+    list.innerHTML = projects.map(p => {
+      const statusCls = p.status === 'completed' ? 'completed' : 'failed';
+      const statusEmoji = p.status === 'completed' ? '\u{2705}' : '\u{274C}';
+      const title = p.title.length > 50 ? p.title.slice(0, 50) + '...' : p.title;
+      const resumeBtn = p.canResume
+        ? `<button class="btn-resume" onclick="event.stopPropagation(); resumeProject('${p.name}')">\u{25B6} 이어하기</button>`
+        : '';
+      return `<div class="hist-item" onclick="viewReport('${p.name}')">
+        <span class="hist-idea">${statusEmoji} ${escHtml(title)}</span>
+        <span class="hist-status ${statusCls}">${p.elapsed || ''}</span>
+        ${resumeBtn}
+      </div>`;
+    }).join('');
+  } catch (err) {
+    list.innerHTML = `<p style="color:var(--red);font-size:12px">${err.message}</p>`;
+  }
+}
+
+async function resumeProject(projectName) {
+  if (isRunning) return;
+
+  document.getElementById('historyPanel').style.display = 'none';
+  isRunning = true;
+  startTime = Date.now();
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('timerBadge').style.display = 'flex';
+  document.getElementById('welcomeMsg')?.remove();
+  document.getElementById('chatArea').style.display = 'block';
+  document.getElementById('chatArea').innerHTML = '';
+  document.getElementById('logArea').innerHTML = '';
+
+  reviewRound = 0;
+  AGENTS.forEach(a => { agentStates[a.id] = 'idle'; agentActivities[a.id] = []; });
+  renderRoster();
+  timerInterval = setInterval(updateTimer, 1000);
+
+  addChatBubble(null, `\u{25B6}\uFE0F 이전 프로젝트 재개: ${projectName}`, true);
+
+  try {
+    await fetch(`/api/projects/resume/${projectName}`, { method: 'POST' });
+  } catch (err) {
+    addChatBubble(null, `\u{274C} 재개 실패: ${err.message}`, true);
+    isRunning = false;
+    document.getElementById('startBtn').disabled = false;
+    clearInterval(timerInterval);
+  }
+}
+
+async function viewReport(projectName) {
+  document.getElementById('historyPanel').style.display = 'none';
+
+  try {
+    const res = await fetch(`/api/history/${projectName}`);
+    const data = await res.json();
+
+    document.getElementById('welcomeMsg')?.remove();
+    const chatArea = document.getElementById('chatArea');
+    chatArea.style.display = 'block';
+    chatArea.innerHTML = '';
+
+    addChatBubble(null, `\u{1F4C4} **${projectName}** 프로젝트 보고서`, true);
+    addChatBubble(null, data.report, true);
+  } catch (err) {
+    addChatBubble(null, `\u{274C} 보고서 로드 실패: ${err.message}`, true);
+  }
+}
+
+// === LOAD FOLDERS ===
+async function loadFolders() {
+  try {
+    const res = await fetch('/api/folders');
+    const data = await res.json();
+    const sel = document.getElementById('workDirSelect');
+    // 기본 옵션 유지하고 폴더 추가
+    sel.innerHTML = '<option value="">새 프로젝트 (자동 생성)</option>';
+    for (const f of data.folders) {
+      const label = f.name + (f.hasReport ? ' \u2705' : f.hasCheckpoint ? ' \u{1F504}' : '');
+      const opt = document.createElement('option');
+      opt.value = f.path;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+  } catch { /* ignore */ }
+}
+
+// Init
+renderRoster();
+connectWs();
+loadFolders();
+</script>
+
+</body>
+</html>

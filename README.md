@@ -88,6 +88,7 @@ npm start
 📁 버튼 클릭 → 완료/실패한 프로젝트 목록 → 클릭하면 REPORT.md 내용 확인
 
 ## 웹 대시보드
+<img width="2558" height="1267" alt="image" src="https://github.com/user-attachments/assets/3556f566-dad1-4222-87e7-19cee17b3a90" />
 
 ```
 ┌─────────────────────────────────────────────────────────┐
